@@ -55,9 +55,18 @@ final class AppCoordinator: ObservableObject {
             }
         )
         let controller = NSHostingController(rootView: rootView)
-        let window = NSWindow(contentViewController: controller)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 244),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
         window.title = "Permissions"
-        window.styleMask.formUnion([.titled, .closable])
+        window.setContentSize(NSSize(width: 460, height: 244))
+        window.contentMinSize = NSSize(width: 460, height: 244)
+        window.contentMaxSize = NSSize(width: 640, height: 360)
+        window.center()
         return window
     }()
 

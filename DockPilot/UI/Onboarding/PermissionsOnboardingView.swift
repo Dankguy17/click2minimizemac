@@ -30,7 +30,7 @@ struct PermissionsOnboardingView: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .frame(width: 460)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func permissionRow(title: String, granted: Bool) -> some View {
