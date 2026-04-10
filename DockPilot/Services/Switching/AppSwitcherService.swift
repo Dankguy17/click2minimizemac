@@ -43,6 +43,18 @@ final class AppSwitcherService: ObservableObject {
         selectedIndex = (selectedIndex + delta + apps.count) % apps.count
     }
 
+    func select(_ app: AppDescriptor) {
+        if let index = apps.firstIndex(of: app) {
+            selectedIndex = index
+        }
+    }
+
+    @discardableResult
+    func activate(_ app: AppDescriptor) -> AppDescriptor? {
+        select(app)
+        return activateSelected()
+    }
+
     @discardableResult
     func activateSelected() -> AppDescriptor? {
         guard apps.indices.contains(selectedIndex) else { return nil }

@@ -3,31 +3,60 @@ import SwiftUI
 
 struct AppSwitcherView: View {
     @ObservedObject var service: AppSwitcherService
+    let onClose: () -> Void
+    let onActivate: (AppDescriptor) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("DockPilot")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
+            HStack {
+                Text("DockPilot")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 26, height: 26)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.16))
+                        )
+                }
+                .buttonStyle(.plain)
+                .contentShape(Circle())
+                .help("Close App Switcher")
+            }
 
             ForEach(Array(service.apps.enumerated()), id: \.element.id) { index, app in
-                HStack(spacing: 12) {
-                    AppIconView(bundleIdentifier: app.bundleIdentifier)
-                        .frame(width: 26, height: 26)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(app.localizedName)
-                            .font(.system(size: 15, weight: .semibold))
-                        Text(app.bundleIdentifier)
-                            .font(.system(size: 11, weight: .regular, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                Button {
+                    onActivate(app)
+                } label: {
+                    HStack(spacing: 12) {
+                        AppIconView(bundleIdentifier: app.bundleIdentifier)
+                            .frame(width: 26, height: 26)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(app.localizedName)
+                                .font(.system(size: 15, weight: .semibold))
+                            Text(app.bundleIdentifier)
+                                .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer()
                     }
-                    Spacer()
+                    .contentShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(index == service.selectedIndex ? Color.accentColor.opacity(0.2) : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .buttonStyle(.plain)
+                .onHover { isHovering in
+                    if isHovering {
+                        service.select(app)
+                    }
+                }
             }
         }
         .padding(18)

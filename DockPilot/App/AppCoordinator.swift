@@ -41,7 +41,12 @@ final class AppCoordinator: ObservableObject {
     private lazy var mouseGestureEngine = MouseGestureEngine(windowQuery: windowQuery, spaceAwarenessService: spaceAwarenessService)
     private lazy var appSwitcherService = AppSwitcherService(runningAppsService: runningAppsService, recentAppsStore: recentAppsStore)
     private lazy var settingsWindowController = SettingsWindowController(coordinator: self)
-    private lazy var appSwitcherWindowController = AppSwitcherWindowController(service: appSwitcherService)
+    private lazy var appSwitcherWindowController = AppSwitcherWindowController(
+        service: appSwitcherService,
+        onDismiss: { [weak self] in
+            self?.appSwitcherService.dismiss()
+        }
+    )
     private lazy var permissionsWindow: NSWindow = {
         let rootView = PermissionsOnboardingView(
             accessibilityGranted: axService.isTrusted(prompt: false),
@@ -125,11 +130,13 @@ final class AppCoordinator: ObservableObject {
         diagnosticsService.update(plannedAction: ActionType.showSwitcherOverlay.label)
     }
 
+    func dismissAppSwitcher() {
+        appSwitcherService.dismiss()
+        appSwitcherWindowController.dismiss()
+    }
+
     func dismissAppSwitcherIfNeeded() {
-        if appSwitcherService.isPresented {
-            appSwitcherService.dismiss()
-            appSwitcherWindowController.dismiss()
-        }
+        dismissAppSwitcher()
     }
 
     private func configureStatusBar() {
@@ -270,7 +277,7 @@ final class AppCoordinator: ObservableObject {
             refreshFrontmostState()
         }
         if settingsStore.settings.appSwitcher.dismissOnActivate {
-            dismissAppSwitcherIfNeeded()
+            dismissAppSwitcher()
         }
     }
 

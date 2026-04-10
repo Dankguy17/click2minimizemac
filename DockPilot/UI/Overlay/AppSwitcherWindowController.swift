@@ -6,23 +6,41 @@ final class AppSwitcherWindowController: NSWindowController {
     private let service: AppSwitcherService
     private let animator = OverlayAnimator()
     private var eventMonitor: Any?
+    private var globalMouseMonitor: Any?
+    private let onDismiss: () -> Void
 
-    init(service: AppSwitcherService) {
+    init(service: AppSwitcherService, onDismiss: @escaping () -> Void) {
         self.service = service
-        let hostingController = NSHostingController(rootView: AppSwitcherView(service: service))
-        let panel = NSPanel(
+        self.onDismiss = onDismiss
+        let hostingController = NSHostingController(rootView: AnyView(EmptyView()))
+        let panel = AppSwitcherPanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 420),
-            styleMask: [.nonactivatingPanel, .borderless],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
+        panel.becomesKeyOnlyIfNeeded = false
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentViewController = hostingController
         super.init(window: panel)
+        hostingController.rootView = AnyView(
+            AppSwitcherView(
+                service: service,
+                onClose: { [weak self] in
+                    self?.dismissAndNotify()
+                },
+                onActivate: { [weak self] app in
+                    _ = service.activate(app)
+                    self?.dismissAndNotify()
+                }
+            )
+        )
     }
 
     @available(*, unavailable)
@@ -34,12 +52,15 @@ final class AppSwitcherWindowController: NSWindowController {
         guard let window else { return }
         center(window: window)
         installKeyboardMonitor()
+        installOutsideClickMonitor()
+        NSApp.activate(ignoringOtherApps: true)
         animator.show(window)
     }
 
     func dismiss() {
         guard let window else { return }
         removeKeyboardMonitor()
+        removeOutsideClickMonitor()
         animator.hide(window)
     }
 
@@ -67,11 +88,10 @@ final class AppSwitcherWindowController: NSWindowController {
                 return nil
             case 36:
                 _ = service.activateSelected()
-                dismiss()
+                dismissAndNotify()
                 return nil
             case 53:
-                service.dismiss()
-                dismiss()
+                dismissAndNotify()
                 return nil
             default:
                 return event
@@ -84,5 +104,28 @@ final class AppSwitcherWindowController: NSWindowController {
             NSEvent.removeMonitor(eventMonitor)
         }
         eventMonitor = nil
+    }
+
+    private func installOutsideClickMonitor() {
+        removeOutsideClickMonitor()
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self, let window else { return }
+            if !window.frame.contains(event.locationInWindow) {
+                dismissAndNotify()
+            }
+        }
+    }
+
+    private func removeOutsideClickMonitor() {
+        if let globalMouseMonitor {
+            NSEvent.removeMonitor(globalMouseMonitor)
+        }
+        globalMouseMonitor = nil
+    }
+
+    private func dismissAndNotify() {
+        service.dismiss()
+        dismiss()
+        onDismiss()
     }
 }
